@@ -10,7 +10,8 @@ public:
 	~ofxFastFboReader();
 	
 	bool readToPixels(ofFbo &fbo, ofPixelsRef pix, ofImageType type = OF_IMAGE_COLOR);
-	
+	bool readToFloatPixels(ofFbo &fbo, ofFloatPixelsRef pix, ofImageType type = OF_IMAGE_COLOR);
+
 	bool getAsync() { return async; }
 	void setAsync(bool v) { async = v; }
 	

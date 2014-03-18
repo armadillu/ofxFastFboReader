@@ -83,6 +83,78 @@ bool ofxFastFboReader::readToPixels(ofFbo &fbo, ofPixelsRef pix, ofImageType typ
 	return mem != NULL;
 }
 
+bool ofxFastFboReader::readToFloatPixels(ofFbo &fbo, ofFloatPixelsRef pix, ofImageType type)
+{
+	genPBOs();
+	
+	int channels;
+	int glType;
+	
+	if (type == OF_IMAGE_COLOR)
+	{
+		channels = 3;
+		glType = GL_RGB;
+	}
+	else if (type == OF_IMAGE_COLOR_ALPHA)
+	{
+		channels = 4;
+		glType = GL_RGBA;
+	}
+	else if (type == OF_IMAGE_GRAYSCALE)
+	{
+		channels = 1;
+		glType = GL_LUMINANCE;
+	}
+	else
+	{
+		return false;
+	}
+	
+	const int width = fbo.getWidth();
+	const int height = fbo.getHeight();
+	
+	if (async)
+	{
+		index = (index + 1) % 2;
+		nextIndex = (index + 1) % 2;
+	}
+	else
+	{
+		index = nextIndex = 0;
+	}
+	
+	size_t nb = width * height * channels * sizeof(float); // LS: don't just deal with 8-bit color channels..
+	
+	if (nb != num_bytes)
+	{
+		num_bytes = nb;
+		setupPBOs(num_bytes);
+	}
+	
+	glReadBuffer(GL_FRONT);
+	
+	fbo.bind();
+	
+	glBindBuffer(GL_PIXEL_PACK_BUFFER, pboIds[index]);
+	glReadPixels(0, 0, width, height, glType, GL_FLOAT, NULL);
+	
+	glBindBuffer(GL_PIXEL_PACK_BUFFER, pboIds[nextIndex]);
+	float* mem = (float*)glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
+	
+	if (mem)
+	{
+		pix.setFromPixels(mem, width, height, channels);
+		//pix.setFromAlignedPixels(mem, width, height, channels, width*channels); // stride = nr of elements (float, char, etc) in a row, including padding for alignment. we assume no padding..
+		glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
+	}
+	
+	glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+	
+	fbo.unbind();
+	
+	return mem != NULL;
+}
+
 void ofxFastFboReader::genPBOs()
 {
 	if (!pboIds)
